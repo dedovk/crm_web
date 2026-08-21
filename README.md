@@ -1,5 +1,17 @@
 # React + Vite
 
+## Run the built application
+
+Do not open `dist/index.html` directly with `file://`. Serve it over HTTP so browser modules and API requests work.
+
+```bash
+npm install
+npm run build
+npm start
+```
+
+Open `http://localhost:3002/` in a browser. Copy `dist`, `server.js`, `DataBase`, `package.json`, and `package-lock.json` to the other computer, then run the same commands there.
+
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
 Currently, two official plugins are available:
