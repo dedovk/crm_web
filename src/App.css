@@ -50,7 +50,8 @@
 .tab-select,
 .tab-close,
 .add-tab,
-.import-button {
+.import-button,
+.export-xml-button {
     border: 0;
     font: inherit;
     cursor: pointer;
@@ -134,6 +135,28 @@
     border-radius: 7px;
     font-size: 13px;
     font-weight: 700;
+}
+
+.import-xml-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    padding: 10px 15px;
+    color: #26323b;
+    background: #e8f2ed;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.export-xml-button:hover {
+    background: #d8e9e0;
+}
+
+.export-xml-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
 }
 
 .import-button:hover {
@@ -460,12 +483,81 @@ h1 {
 
 .dialog {
     width: min(100%, 460px);
+    max-height: calc(100vh - 48px);
     padding: 30px;
     background: #fff;
     border: 1px solid #dfe7e3;
     border-radius: 12px;
     box-shadow: 0 22px 60px rgba(38, 50, 59, 0.2);
     box-sizing: border-box;
+    overflow-y: auto;
+}
+
+.dialog--results {
+    width: min(70vw, 1100px);
+    height: 70vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.dialog--results .dialog-header {
+    flex-shrink: 0;
+}
+
+.comparison-results {
+    min-height: 0;
+    margin-top: 20px;
+}
+
+.comparison-results .group-list {
+    margin-top: 0;
+}
+
+.dialog--results .comparison-results {
+    flex: 1;
+}
+
+.dialog--results form {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+}
+
+.dialog--results .comparison-results {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.dialog--results .dialog-actions {
+    flex-shrink: 0;
+    margin: 20px -30px -30px;
+    padding: 16px 30px 30px;
+    background: #fff;
+    border-top: 1px solid #edf1ef;
+}
+
+.comparison-results .group-list-toolbar {
+    display: none;
+}
+
+.comparison-results .group {
+    padding: 12px;
+}
+
+.comparison-results .group-heading h2 {
+    font-size: 20px;
+}
+
+.comparison-empty {
+    margin: 20px 0 0;
+    padding: 18px;
+    color: #61706e;
+    background: #f6f8f7;
+    border-radius: 8px;
+    font-size: 14px;
+    text-align: center;
 }
 
 .dialog-header {
@@ -577,7 +669,18 @@ h1 {
     font-size: 12px;
 }
 
+.dialog-success {
+    margin: 14px 0 0;
+    color: #517064;
+    font-size: 12px;
+}
+
 @media (max-width: 760px) {
+    .dialog--results {
+        width: calc(100vw - 32px);
+        height: 80vh;
+    }
+
     .topbar {
         flex-wrap: wrap;
         gap: 0;

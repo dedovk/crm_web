@@ -46,23 +46,23 @@ function TabDialog({ onClose, onCreate }) {
             >
                 <div className="dialog-header">
                     <div>
-                        <p className="eyebrow">Новая группа</p>
-                        <h2 id="new-tab-title">Добавить группу</h2>
+                        <p className="eyebrow">Нова група</p>
+                        <h2 id="new-tab-title">Додати групу</h2>
                     </div>
-                    <button className="dialog-close" onClick={onClose} type="button" aria-label="Close dialog">
+                    <button className="dialog-close" onClick={onClose} type="button" aria-label="Закрити діалог">
                         <span aria-hidden="true">×</span>
                     </button>
                 </div>
 
                 <form onSubmit={handleSubmit}>
                     <div className="field-group">
-                        <label className="field-label" htmlFor="tab-name">Имя</label>
+                        <label className="field-label" htmlFor="tab-name">Назва</label>
                         <input
                             autoFocus
                             className="field-input"
                             id="tab-name"
                             onChange={(event) => setName(event.target.value)}
-                            placeholder="e.g. Leads"
+                            placeholder="наприклад, Ліди"
                             type="text"
                             value={name}
                         />
@@ -81,9 +81,9 @@ function TabDialog({ onClose, onCreate }) {
                     </div>
 
                     <div className="dialog-actions">
-                        <button className="cancel-button" onClick={onClose} type="button">Cancel</button>
+                        <button className="cancel-button" onClick={onClose} type="button">Скасувати</button>
                         <button className="dialog-import-button" disabled={!name.trim() || !link.trim() || isSubmitting} type="submit">
-                            {isSubmitting ? 'Importing...' : 'Import'}
+                            {isSubmitting ? 'Імпортування...' : 'Імпортувати'}
                         </button>
                     </div>
                     {submitError && <p className="dialog-error" role="alert">{submitError}</p>}

@@ -1,45 +1,6 @@
 import { useEffect, useState } from 'react'
 
-const initialGroups = [
-    {
-        id: 'headphones',
-        name: 'Наушники',
-        items: [
-            {
-                id: 'airpods',
-                name: 'AirPods',
-                image: 'https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?auto=format&fit=crop&w=160&q=80',
-                price: '5 499 грн',
-            },
-            {
-                id: 'sony-headphones',
-                name: 'Sony WH-1000XM5',
-                image: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&w=160&q=80',
-                price: '13 999 грн',
-            },
-        ],
-    },
-    {
-        id: 'phone',
-        name: 'телефон',
-        items: [
-            {
-                id: 'iphone',
-                name: 'iPhone 15',
-                image: 'https://images.unsplash.com/photo-1592286927505-2fd2e0c3b8a8?auto=format&fit=crop&w=160&q=80',
-                price: '32 999 грн',
-            },
-            {
-                id: 'samsung',
-                name: 'Samsung Galaxy S24',
-                image: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?auto=format&fit=crop&w=160&q=80',
-                price: '29 999 грн',
-            },
-        ],
-    },
-]
-
-function GroupList({ groups = initialGroups }) {
+function GroupList({ groups, showPrice = true, onSelectionChange }) {
     const [selectedItems, setSelectedItems] = useState([])
     const [expandedGroups, setExpandedGroups] = useState(new Set())
 
@@ -56,22 +17,39 @@ function GroupList({ groups = initialGroups }) {
     }
 
     function toggleItem(itemId) {
-        setSelectedItems((currentItems) => (
-            currentItems.includes(itemId)
+        setSelectedItems((currentItems) => {
+            const nextItems = currentItems.includes(itemId)
                 ? currentItems.filter((currentItem) => currentItem !== itemId)
                 : [...currentItems, itemId]
-        ))
+
+            onSelectionChange?.(getSelectedGroups(nextItems))
+            return nextItems
+        })
     }
 
     function toggleGroup(group) {
         const groupItemIds = group.items.map((item) => item.id)
         const allSelected = groupItemIds.every((itemId) => selectedItems.includes(itemId))
 
-        setSelectedItems((currentItems) => (
-            allSelected
+        setSelectedItems((currentItems) => {
+            const nextItems = allSelected
                 ? currentItems.filter((itemId) => !groupItemIds.includes(itemId))
                 : [...new Set([...currentItems, ...groupItemIds])]
-        ))
+
+            onSelectionChange?.(getSelectedGroups(nextItems))
+            return nextItems
+        })
+    }
+
+    function getSelectedGroups(itemIds) {
+        const selectedIds = new Set(itemIds)
+
+        return groups
+            .map((group) => ({
+                ...group,
+                items: group.items.filter((item) => selectedIds.has(item.id)),
+            }))
+            .filter((group) => group.items.length > 0)
     }
 
     function toggleExpandedGroup(groupId) {
@@ -89,16 +67,16 @@ function GroupList({ groups = initialGroups }) {
     }
 
     return (
-        <div className="group-list" aria-label="Groups">
+        <div className="group-list" aria-label="Групи">
             <div className="group-list-toolbar">
-                <span className="group-list-label"><strong>{groups.length}</strong> Groups</span>
+                <span className="group-list-label"><strong>{groups.length}</strong> Груп</span>
             </div>
             {groups.map((group) => (
                 <section className="group" key={group.id}>
                     <div className="group-heading">
                         <button
                             aria-expanded={expandedGroups.has(group.id)}
-                            aria-label={`${expandedGroups.has(group.id) ? 'Hide' : 'Show'} ${group.name} items`}
+                            aria-label={`${expandedGroups.has(group.id) ? 'Сховати' : 'Показати'} товари групи ${group.name}`}
                             className="group-expand-button"
                             onClick={() => toggleExpandedGroup(group.id)}
                             type="button"
@@ -111,7 +89,7 @@ function GroupList({ groups = initialGroups }) {
                             const partiallySelected = selectedGroupItems.length > 0 && !allSelected
 
                             return (
-                                <label className="item-checkbox group-checkbox" aria-label={`Select all ${group.name}`}>
+                                <label className="item-checkbox group-checkbox" aria-label={`Вибрати всі товари групи ${group.name}`}>
                                     <input
                                         checked={allSelected}
                                         onChange={() => toggleGroup(group)}
@@ -125,13 +103,13 @@ function GroupList({ groups = initialGroups }) {
                             )
                         })()}
                         <h2>{group.name}</h2>
-                        <span className="item-count">{group.items.length} items</span>
+                        <span className="item-count">{group.items.length} товарів</span>
                     </div>
                     {expandedGroups.has(group.id) && (
                         <ul className="subgroup-list">
                             {group.items.map((item) => (
                                 <li className="subgroup-item" key={item.id}>
-                                    <label className="item-checkbox" aria-label={`Select ${item.name}`}>
+                                    <label className="item-checkbox" aria-label={`Вибрати ${item.name}`}>
                                         <input
                                             checked={selectedItems.includes(item.id)}
                                             onChange={() => toggleItem(item.id)}
@@ -141,7 +119,7 @@ function GroupList({ groups = initialGroups }) {
                                     </label>
                                     <img className="item-image" src={item.image} alt={item.name} />
                                     <span className="item-name">{item.name}</span>
-                                    <span className="item-price">{formatPrice(item)}</span>
+                                    {showPrice && <span className="item-price">{formatPrice(item)}</span>}
                                 </li>
                             ))}
                         </ul>
@@ -152,5 +130,4 @@ function GroupList({ groups = initialGroups }) {
     )
 }
 
-export { initialGroups }
 export default GroupList
