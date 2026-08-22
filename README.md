@@ -12,6 +12,17 @@ npm start
 
 Open `http://localhost:3002/` in a browser. Copy `dist`, `server.js`, `DataBase`, `package.json`, and `package-lock.json` to the other computer, then run the same commands there.
 
+## Windows automatic startup
+
+After building the project, run PowerShell once from the project folder:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\scripts\install-crm-autostart.ps1
+```
+
+Windows Task Scheduler will start the server automatically after your user logs in. The server log is written to `logs/crm-server.log`. Open `http://localhost:3002/` to use the app.
+
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
 Currently, two official plugins are available:

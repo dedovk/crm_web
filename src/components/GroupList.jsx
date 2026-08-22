@@ -1,12 +1,29 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
-function GroupList({ groups, showPrice = true, onSelectionChange }) {
+function GroupList({ groups, showPrice = true, onSelectionChange, showSelectAll = false }) {
     const [selectedItems, setSelectedItems] = useState([])
     const [expandedGroups, setExpandedGroups] = useState(new Set())
 
+    const availableItemIds = useMemo(
+        () => new Set(groups.flatMap((group) => group.items.map((item) => item.id))),
+        [groups]
+    )
+    const activeSelectedItems = useMemo(
+        () => selectedItems.filter((itemId) => availableItemIds.has(itemId)),
+        [availableItemIds, selectedItems]
+    )
+
     useEffect(() => {
-        setExpandedGroups(new Set())
-    }, [groups])
+        const selectedIds = new Set(activeSelectedItems)
+        const selectedGroups = groups
+            .map((group) => ({
+                ...group,
+                items: group.items.filter((item) => selectedIds.has(item.id)),
+            }))
+            .filter((group) => group.items.length > 0)
+
+        onSelectionChange?.(selectedGroups)
+    }, [groups, activeSelectedItems, onSelectionChange])
 
     function formatPrice(item) {
         if (typeof item.price === 'number') {
@@ -16,41 +33,48 @@ function GroupList({ groups, showPrice = true, onSelectionChange }) {
         return item.price
     }
 
+    function getAvailabilityTag(item) {
+        if (item.availabilityTag && item.availabilityTag !== 'available=true') {
+            return item.availabilityTag
+        }
+
+        return item.available ? 'Є в наявності' : 'Нема в наявності'
+    }
+
     function toggleItem(itemId) {
         setSelectedItems((currentItems) => {
             const nextItems = currentItems.includes(itemId)
                 ? currentItems.filter((currentItem) => currentItem !== itemId)
                 : [...currentItems, itemId]
 
-            onSelectionChange?.(getSelectedGroups(nextItems))
             return nextItems
         })
     }
 
     function toggleGroup(group) {
         const groupItemIds = group.items.map((item) => item.id)
-        const allSelected = groupItemIds.every((itemId) => selectedItems.includes(itemId))
+        const allSelected = groupItemIds.every((itemId) => activeSelectedItems.includes(itemId))
 
         setSelectedItems((currentItems) => {
             const nextItems = allSelected
                 ? currentItems.filter((itemId) => !groupItemIds.includes(itemId))
                 : [...new Set([...currentItems, ...groupItemIds])]
 
-            onSelectionChange?.(getSelectedGroups(nextItems))
             return nextItems
         })
     }
 
-    function getSelectedGroups(itemIds) {
-        const selectedIds = new Set(itemIds)
+    function toggleAllItems() {
+        const allItemIds = groups.flatMap((group) => group.items.map((item) => item.id))
+        const allSelected = allItemIds.length > 0 && allItemIds.every((itemId) => selectedItems.includes(itemId))
+        const nextItems = allSelected ? [] : allItemIds
 
-        return groups
-            .map((group) => ({
-                ...group,
-                items: group.items.filter((item) => selectedIds.has(item.id)),
-            }))
-            .filter((group) => group.items.length > 0)
+        setSelectedItems(nextItems)
     }
+
+    const allItemIds = groups.flatMap((group) => group.items.map((item) => item.id))
+    const allItemsSelected = allItemIds.length > 0 && allItemIds.every((itemId) => activeSelectedItems.includes(itemId))
+    const totalItems = groups.reduce((total, group) => total + group.items.length, 0)
 
     function toggleExpandedGroup(groupId) {
         setExpandedGroups((currentGroups) => {
@@ -69,7 +93,15 @@ function GroupList({ groups, showPrice = true, onSelectionChange }) {
     return (
         <div className="group-list" aria-label="Групи">
             <div className="group-list-toolbar">
-                <span className="group-list-label"><strong>{groups.length}</strong> Груп</span>
+                <span className="group-list-label">
+                    <span><strong>{groups.length}</strong> груп</span>
+                    <span><strong>{totalItems}</strong> товарів</span>
+                </span>
+                {showSelectAll && (
+                    <button className="select-all-button" onClick={toggleAllItems} type="button">
+                        {allItemsSelected ? 'Зняти вибір' : 'Вибрати все'}
+                    </button>
+                )}
             </div>
             {groups.map((group) => (
                 <section className="group" key={group.id}>
@@ -84,7 +116,7 @@ function GroupList({ groups, showPrice = true, onSelectionChange }) {
                             <span aria-hidden="true">›</span>
                         </button>
                         {(() => {
-                            const selectedGroupItems = group.items.filter((item) => selectedItems.includes(item.id))
+                            const selectedGroupItems = group.items.filter((item) => activeSelectedItems.includes(item.id))
                             const allSelected = group.items.length > 0 && selectedGroupItems.length === group.items.length
                             const partiallySelected = selectedGroupItems.length > 0 && !allSelected
 
@@ -111,14 +143,19 @@ function GroupList({ groups, showPrice = true, onSelectionChange }) {
                                 <li className="subgroup-item" key={item.id}>
                                     <label className="item-checkbox" aria-label={`Вибрати ${item.name}`}>
                                         <input
-                                            checked={selectedItems.includes(item.id)}
+                                            checked={activeSelectedItems.includes(item.id)}
                                             onChange={() => toggleItem(item.id)}
                                             type="checkbox"
                                         />
                                         <span className="checkbox-ui" aria-hidden="true" />
                                     </label>
                                     <img className="item-image" src={item.image} alt={item.name} />
-                                    <span className="item-name">{item.name}</span>
+                                    <span className="item-name">
+                                        <span className="item-name-text">{item.name}</span>
+                                        <span className={`item-availability-tag ${item.available ? 'item-availability-tag--available' : 'item-availability-tag--missing'}`}>
+                                            {getAvailabilityTag(item)}
+                                        </span>
+                                    </span>
                                     {showPrice && <span className="item-price">{formatPrice(item)}</span>}
                                 </li>
                             ))}

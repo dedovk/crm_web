@@ -16,6 +16,7 @@ function App() {
   const [isLoadingGroups, setIsLoadingGroups] = useState(true)
   const [workspaceError, setWorkspaceError] = useState('')
   const [groupsError, setGroupsError] = useState('')
+  const [isExporting, setIsExporting] = useState(false)
 
   useEffect(() => {
     async function loadWorkspaces() {
@@ -159,21 +160,52 @@ function App() {
 
   async function downloadWorkspaceItems(groupsToDownload) {
     const workspaceName = tabs.find((tab) => tab.id === activeTab)?.name
-    const response = await fetch('/api/workspaces/export', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ workspaceName, groups: groupsToDownload }),
-    })
 
-    if (!response.ok) throw new Error('Не вдалося завантажити товари робочого простору')
+    if (!workspaceName) {
+      throw new Error('Workspace not found')
+    }
 
-    const blob = await response.blob()
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `${workspaceName || 'workspace'}.xml`
-    link.click()
-    URL.revokeObjectURL(url)
+    const exportGroups = groupsToDownload
+      .map((group) => ({
+        id: group.id,
+        name: group.name,
+        items: (group.items || [])
+          .filter((item) => item.id)
+          .map((item) => ({
+            id: item.id,
+            xml: item.xml || '',
+          })),
+      }))
+      .filter((group) => group.items.length > 0)
+    const itemIds = exportGroups.flatMap((group) => group.items.map((item) => item.id))
+
+    if (itemIds.length === 0) {
+      throw new Error('No items selected for export')
+    }
+
+    setIsExporting(true)
+    try {
+      const response = await fetch('/api/workspaces/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspaceName, itemIds, groups: exportGroups }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Не вдалося завантажити товари робочого простору')
+      }
+
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${workspaceName || 'workspace'}.xml`
+      link.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   function removeTab(tabIdToRemove) {
@@ -227,12 +259,13 @@ function App() {
         </button>
         <button
           className="export-xml-button"
-          disabled={!selectedGroups.length}
+          disabled={!selectedGroups.length || isExporting}
           onClick={() => downloadWorkspaceItems(selectedGroups)}
           type="button"
+          title={isExporting ? 'Експорт в процесі...' : ''}
         >
-          <span className="import-icon" aria-hidden="true">↓</span>
-          Експорт XML
+          <span className="import-icon" aria-hidden="true">{isExporting ? '⏳' : '↓'}</span>
+          {isExporting ? 'Експорт...' : 'Експорт XML'}
         </button>
       </header>
 
@@ -252,6 +285,7 @@ function App() {
             key={groupListVersion}
             groups={groups}
             onSelectionChange={setSelectedGroups}
+            showSelectAll
           />
         )}
       </section>

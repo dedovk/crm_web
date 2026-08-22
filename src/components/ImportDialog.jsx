@@ -8,6 +8,7 @@ function ImportDialog({ onClose, onCompare, onAdd, onDownload, workspaceName }) 
     const [comparisonGroups, setComparisonGroups] = useState(null)
     const [selectedGroups, setSelectedGroups] = useState([])
     const hasNewItems = comparisonGroups?.length > 0
+    const totalItems = comparisonGroups?.reduce((total, group) => total + group.items.length, 0) || 0
 
     useEffect(() => {
         function handleKeyDown(event) {
@@ -57,6 +58,13 @@ function ImportDialog({ onClose, onCompare, onAdd, onDownload, workspaceName }) 
                         <span aria-hidden="true">×</span>
                     </button>
                 </div>
+
+                {comparisonGroups && (
+                    <div className="comparison-summary" role="status">
+                        <span><strong>{comparisonGroups.length}</strong> {comparisonGroups.length === 1 ? 'група' : 'груп'}</span>
+                        <span><strong>{totalItems}</strong> {totalItems === 1 ? 'товар' : 'товарів'}</span>
+                    </div>
+                )}
 
                 <form onSubmit={handleSubmit}>
                     {!hasNewItems && (

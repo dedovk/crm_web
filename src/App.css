@@ -236,6 +236,9 @@ h1 {
 }
 
 .group-list-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
     color: #8a9693;
     font-size: 11px;
     font-weight: 700;
@@ -243,9 +246,32 @@ h1 {
     text-transform: uppercase;
 }
 
+.group-list-label span+span::before {
+    margin-right: 12px;
+    color: #c8d5cf;
+    content: '•';
+}
+
 .group-list-label strong {
     color: #26323b;
     font-size: 14px;
+}
+
+.select-all-button {
+    padding: 7px 10px;
+    color: #61706e;
+    background: #fff;
+    border: 1px solid #dfe7e3;
+    border-radius: 6px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.select-all-button:hover {
+    color: #e26d4e;
+    border-color: #e26d4e;
 }
 
 .group-expand-button {
@@ -440,11 +466,40 @@ h1 {
 }
 
 .item-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
     overflow: hidden;
     color: #26323b;
     font-weight: 700;
+}
+
+.item-name-text {
+    overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.item-availability-tag {
+    flex: 0 0 auto;
+    padding: 3px 7px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.item-availability-tag--available {
+    color: #517064;
+    background: #e8f2ed;
+}
+
+.item-availability-tag--missing {
+    color: #a34d3b;
+    background: #fff3ef;
 }
 
 .item-price {
@@ -508,6 +563,25 @@ h1 {
 .comparison-results {
     min-height: 0;
     margin-top: 20px;
+}
+
+.comparison-summary {
+    display: flex;
+    gap: 8px;
+    margin: -12px 0 18px;
+    color: #7a8888;
+    font-size: 12px;
+}
+
+.comparison-summary span {
+    padding: 7px 10px;
+    background: #f6f8f7;
+    border-radius: 6px;
+}
+
+.comparison-summary strong {
+    color: #26323b;
+    font-size: 14px;
 }
 
 .comparison-results .group-list {

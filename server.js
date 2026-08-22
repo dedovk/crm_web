@@ -5,7 +5,9 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const app = express()
-app.use(express.json())
+// Збільшуємо ліміт для великих експортів (100 MB замість стандартних 100 KB)
+app.use(express.json({ limit: '100mb' }))
+app.use(express.text({ limit: '100mb' }))
 const port = Number(process.env.API_PORT || 3002)
 const databaseDirectory = path.join(path.dirname(fileURLToPath(import.meta.url)), 'DataBase')
 const distDirectory = path.join(path.dirname(fileURLToPath(import.meta.url)), 'dist')
@@ -46,18 +48,20 @@ function normalizeGroups(shop, offerXmlById = new Map()) {
             items: [],
         }
         const pictures = asArray(offer.picture)
+        const available = offer['@_available'] !== 'false'
 
         group.items.push({
             id: String(offer['@_id']),
             xml: offerXmlById.get(String(offer['@_id'])) || '',
             name: offer.name || 'Без названия',
+            availabilityTag: available ? 'Є в наявності' : 'Нема в наявності',
             image: pictures[0] || '',
             images: pictures,
             price: Number(offer.price || 0),
             oldPrice: offer.oldprice ? Number(offer.oldprice) : null,
             currency: offer.currencyId || 'UAH',
             url: offer.url || '',
-            available: offer['@_available'] !== 'false',
+            available,
             vendor: offer.vendor || '',
         })
         groups.set(categoryId, group)
@@ -223,6 +227,42 @@ function getWorkspaceItemIds(workspace) {
             .map((item) => String(item.id))
             .filter(Boolean)
     )
+}
+
+function getExportItemIds(body) {
+    if (Array.isArray(body?.itemIds)) {
+        return body.itemIds.map(String).filter(Boolean)
+    }
+
+    if (Array.isArray(body?.groups)) {
+        return body.groups
+            .flatMap((group) => asArray(group?.items))
+            .map((item) => String(item?.id || ''))
+            .filter(Boolean)
+    }
+
+    return []
+}
+
+function getExportItemXmlById(body) {
+    const itemXmlById = new Map()
+
+    if (!Array.isArray(body?.groups)) {
+        return itemXmlById
+    }
+
+    for (const group of body.groups) {
+        for (const item of asArray(group?.items)) {
+            const itemId = String(item?.id || '')
+            const itemXml = typeof item?.xml === 'string' ? item.xml.trim() : ''
+
+            if (itemId && itemXml) {
+                itemXmlById.set(itemId, itemXml)
+            }
+        }
+    }
+
+    return itemXmlById
 }
 
 function replaceOffersInXml(xml, selectedItems) {
@@ -407,10 +447,10 @@ app.post('/api/workspaces/update', async (request, response) => {
 
 app.post('/api/workspaces/export', async (request, response) => {
     const workspaceName = typeof request.body?.workspaceName === 'string' ? request.body.workspaceName.trim() : ''
-    const groups = request.body?.groups
+    const itemIds = getExportItemIds(request.body)
 
-    if (!workspaceName || !Array.isArray(groups) || groups.length === 0) {
-        return response.status(400).json({ error: 'workspaceName and non-empty groups array are required' })
+    if (!workspaceName || itemIds.length === 0) {
+        return response.status(400).json({ error: 'workspaceName and selected itemIds or groups are required' })
     }
 
     try {
@@ -420,12 +460,37 @@ app.post('/api/workspaces/export', async (request, response) => {
         }
 
         const initialXml = await readFile(storedWorkspace.xmlFilePath, 'utf8')
-        const selectedItems = groups.flatMap((group) => asArray(group.items))
+        const selectedItemIds = new Set(itemIds.map(String))
+        const incomingItemXmlById = getExportItemXmlById(request.body)
+        
+        // Будуємо мап товарів тільки для вибраних ID
+        const selectedItems = []
+        const offerPattern = /<offer\b[^>]*\bid=["']([^"']+)["'][^>]*>[\s\S]*?<\/offer>/gi
+        let match
+        
+        while ((match = offerPattern.exec(initialXml)) !== null) {
+            const offerId = String(match[1])
+            if (selectedItemIds.has(offerId)) {
+                selectedItems.push({ id: offerId, xml: match[0] })
+            }
+        }
+
+        for (const itemId of selectedItemIds) {
+            if (!selectedItems.some((item) => item.id === itemId) && incomingItemXmlById.has(itemId)) {
+                selectedItems.push({ id: itemId, xml: incomingItemXmlById.get(itemId) })
+            }
+        }
+
+        if (selectedItems.length === 0) {
+            return response.status(400).json({ error: 'No matching items found in workspace' })
+        }
+
         const xml = replaceOffersInXml(initialXml, selectedItems)
         const fileName = `${slugify(workspaceName)}-selected.xml`
 
         response.setHeader('Content-Type', 'application/xml; charset=utf-8')
         response.setHeader('Content-Disposition', `attachment; filename="${fileName}"`)
+        response.setHeader('Content-Length', Buffer.byteLength(xml, 'utf8'))
         return response.status(200).send(xml)
     } catch (error) {
         console.error(error)
